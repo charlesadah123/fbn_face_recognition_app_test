@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as image_lib;
 import 'package:image_picker/image_picker.dart';
+import 'package:fbn_face_recognition_app_test/facepainter.dart';
 
 void main() => runApp(MyApp());
 
@@ -57,6 +59,34 @@ class _MyAppState extends State<MyApp> {
       print('No faces detected rigt no.');
     }
 
+    if (faces.isNotEmpty) {
+      for (Face face in faces) {
+        // Extract bounding box coordinates
+        final Rect boundingBox = face.boundingBox;
+        final int left = boundingBox.left.toInt();
+        final int top = boundingBox.top.toInt();
+        final int width = boundingBox.width.toInt();
+        final int height = boundingBox.height.toInt();
+
+        // Read the original image
+        final originalImage =
+            image_lib.decodeImage(await imageFile.readAsBytes());
+
+        // Crop the image based on bounding box
+        final croppedImage = image_lib.copyCrop(originalImage!,
+            x: left, y: top, width: width, height: height);
+        print(
+          'This is the output $croppedImage'
+        ); // Optional, for debugging purposes
+
+        // Handle the cropped image (e.g., convert to bytes)
+        //final List<int> croppedImageData = encodePng(croppedImage);
+
+        // Pass croppedImageData and confidence score (if needed) to face recognition model
+        // ... your face recognition logic here ...
+      }
+    }
+
     // Update state with detected faces
     setState(() {
       _faces = faces;
@@ -88,7 +118,6 @@ class _MyAppState extends State<MyApp> {
                   ? Image.file(_imageFile!) // Use null-safe access
                   : Text('No image selected'),
             ),
-            
           ],
         ),
         floatingActionButton: FloatingActionButton(
@@ -98,43 +127,5 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
     );
-  }
-}
-
-// Custom painter class to draw bounding boxes (optional)
-class FacePainter extends CustomPainter {
-  final List<Face> faces;
-
-  FacePainter(this.faces);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    print('FacePainter.paint called!');
-    _drawBoundingBoxes(canvas, size); // Call the _drawBoundingBoxes method
-  }
-
-  @override
-  bool shouldRepaint(FacePainter oldDelegate) => oldDelegate.faces != faces;
-
-  // Define the _drawBoundingBoxes method to draw bounding boxes around detected faces
-  void _drawBoundingBoxes(Canvas canvas, Size imageSize) {
-    if (faces.isEmpty) {
-      print(" not drawing");
-      return;
-    }
-
-    final paint = Paint()
-      ..color = Colors.red
-      ..strokeWidth = 2.0;
-
-    for (final face in faces) {
-      final rect = face.boundingBox;
-      final scaledRect = Rect.fromLTRB(
-          rect.left * imageSize.width,
-          rect.top * imageSize.height,
-          rect.width * imageSize.width,
-          rect.height * imageSize.height);
-      canvas.drawRect(scaledRect, paint);
-    }
   }
 }
